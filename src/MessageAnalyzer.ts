@@ -1,7 +1,9 @@
-import { assert } from 'console';
 import { Field, SmartContract, state, State, method, Struct, Poseidon } from 'o1js';
-import { Field, SmartContract, state, State, method } from 'o1js';
-import { Agent } from 'undici-types';
+
+
+export function CheckMessage(messages: Message): boolean {
+  return true;
+}
 
 /**
  * Basic Example
