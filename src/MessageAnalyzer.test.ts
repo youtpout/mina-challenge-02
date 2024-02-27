@@ -1,4 +1,4 @@
-import { MessageAnalyzer, Message } from './MessageAnalyzer';
+import { MessageAnalyzer, Message, Message100 } from './MessageAnalyzer';
 import { Field, Mina, PrivateKey, PublicKey, AccountUpdate } from 'o1js';
 
 /*
@@ -51,17 +51,32 @@ describe('MessageAnalyzer', () => {
     expect(num).toEqual(Field(0));
   });
 
-  it('correctly updates the num state on the `Add` smart contract', async () => {
+  it('correctly test messages', async () => {
     await localDeploy();
+
+    const messages: Message[] = [];
+    for (let index = 0; index < 100; index++) {
+      let message = new Message({ messageNumber: Field(index), agentId: randomField(3000), agentXLocation: randomField(15000), agentYLocation: randomField(20000), checksum: Field(0) });
+      message.checksum = message.agentId.add(message.agentXLocation).add(message.agentYLocation);
+      messages.push(message);
+    }
+
+    const msg100 = new Message100({ messages });
 
     // update transaction
     const txn = await Mina.transaction(senderAccount, () => {
       //zkApp.update();
+      zkApp.analyze(msg100);
     });
     await txn.prove();
     await txn.sign([senderKey]).send();
 
-    // const updatedNum = zkApp.num.get();
-    // expect(updatedNum).toEqual(Field(3));
+    const updatedNum = zkApp.maxMessageNumber.get();
+    expect(updatedNum).toBeGreaterThan(0);
   });
+
+  function randomField(maxValue: number): Field {
+    const nb = Math.random() * maxValue;
+    return Field(Math.floor(nb));
+  }
 });

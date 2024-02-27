@@ -1,3 +1,3 @@
-import { Add } from './Add.js';
+import { MessageAnalyzer } from './MessageAnalyzer.js';
 
-export { Add };
+export { MessageAnalyzer };
