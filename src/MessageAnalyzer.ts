@@ -87,20 +87,20 @@ export class Message200 extends Struct({
   constructor(value: {
     messages: Message[]
   }) {
-    let newMsg = value;
-    if (value.messages.length > 200) {
-      throw Error("More than 200 messages");
-    }
-    else if (value.messages.length < 200) {
-      // we fill with empty message to get 200 messages
-      const nb = 200 - value.messages.length;
-      const emptyMessage = new Message({ messageNumber: Field.empty(), agentId: Field.empty(), agentXLocation: Field.empty(), agentYLocation: Field.empty(), checksum: Field.empty() });
-      for (let index = 0; index < nb; index++) {
-        value.messages.push(emptyMessage);
-      }
+    // let newMsg = value;
+    // if (value.messages.length > 200) {
+    //   // throw Error("More than 200 messages");
+    // }
+    // else if (value.messages.length < 200) {
+    //   // we fill with empty message to get 200 messages
+    //   const nb = 200 - value.messages.length;
+    //   const emptyMessage = new Message({ messageNumber: Field.empty(), agentId: Field.empty(), agentXLocation: Field.empty(), agentYLocation: Field.empty(), checksum: Field.empty() });
+    //   for (let index = 0; index < nb; index++) {
+    //     value.messages.push(emptyMessage);
+    //   }
 
-    }
-    super(newMsg);
+    // }
+    super(value);
   }
 }
 
@@ -113,12 +113,49 @@ export class MessageAnalyzer extends SmartContract {
 
   @method analyze(msg: Message200) {
     let lastId = this.maxMessageNumber.getAndRequireEquals();
-    for (let index = 0; index < msg.messages.length; index++) {
+
+    for (let index = 0; index < 200; index++) {
       const element = msg.messages[index];
-      lastId = element.process(lastId);
+      console.log("index", index);
+      const newId = element.process(lastId);
+      newId.assertGreaterThanOrEqual(lastId);
+      lastId = newId;
       console.log("new last Id", lastId);
     }
+    console.log("msg length", msg.messages.length);
     // store the bigest id never evaluated
     this.maxMessageNumber.set(lastId);
   }
+}
+
+
+
+function process(message: Message, lastId: Field): Field {
+  const zero = Field.empty();
+  console.log("lastId", lastId);
+  // In case the message number is not greater than the previous one, this means that this is a duplicate message
+  if (message.messageNumber.lessThanOrEqual(lastId)) {
+    console.log("isCorrect", false);
+    return lastId;
+  }
+  // If Agent ID is zero we don't need to check the other values, but this is still a valid message
+  if (message.agentId == zero) {
+    return message.messageNumber;
+  }
+
+  // Agent ID (should be between 0 and 3000)
+  if (message.agentId > zero && message.agentId <= Field(3000)) {
+    //Agent XLocation (should be between 0 and 15000) Agent YLocation
+    if (message.agentXLocation >= zero && message.agentXLocation <= Field(15000)) {
+      // Agent YLocation (should be between 5000 and 20000) Agent YLocation should be greater than Agent XLocation
+      if (message.agentYLocation > message.agentXLocation && message.agentYLocation >= Field(5000) && message.agentYLocation <= Field(20000)) {
+        // CheckSum is the sum of Agent ID , Agent XLocation,and Agent YLocation
+        const sum = message.agentId.add(message.agentXLocation).add(message.agentYLocation);
+        if (sum == message.checksum) {
+          return message.messageNumber;
+        }
+      }
+    }
+  }
+  return lastId;
 }

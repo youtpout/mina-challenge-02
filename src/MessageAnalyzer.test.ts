@@ -55,10 +55,10 @@ describe('MessageAnalyzer', () => {
     await localDeploy();
 
     const messages: Message[] = [];
-    for (let index = 0; index < 100; index++) {
+    for (let index = 0; index < 300; index++) {
       let message = new Message({ messageNumber: new Field(index), agentId: new Field(1500), agentXLocation: new Field(15000), agentYLocation: new Field(20000), checksum: new Field(36500) });
       //message.checksum = message.agentId.add(message.agentXLocation).add(message.agentYLocation);
-      console.log("message", message.messageNumber);
+
       messages.push(message);
     }
 
