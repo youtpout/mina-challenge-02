@@ -90,6 +90,20 @@ export class Message200 extends Struct({
   }) {
     super(value);
   }
+
+  getMaxId(): Field {
+    let lastId = Field.empty();
+
+    for (let index = 0; index < this.messages.length; index++) {
+      const element = this.messages[index];
+      if (element.messageNumber.greaterThan(lastId) && element.isCorrect()) {
+        lastId = element.messageNumber;
+      }
+
+    }
+
+    return lastId;
+  }
 }
 
 export class MessageAnalyzer extends SmartContract {
@@ -101,13 +115,8 @@ export class MessageAnalyzer extends SmartContract {
 
   @method analyze(msg: Message200) {
     let lastId = this.maxMessageNumber.getAndRequireEquals();
-    for (let index = 0; index < msg.messages.length; index++) {
-      const element = msg.messages[index];
-      lastId = Provable.if(element?.messageNumber?.greaterThan(lastId),
-        (Provable.if(element.isCorrect(), element.messageNumber, lastId)),
-        lastId);
-    }
-    // store the bigest id never evaluated
-    this.maxMessageNumber.set(lastId);
+    const maxId = msg.getMaxId();
+    maxId.assertGreaterThan(lastId);
+    this.maxMessageNumber.set(maxId);
   }
 }
