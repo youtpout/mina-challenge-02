@@ -67,6 +67,35 @@ export class Message extends Struct({
     }
     return lastId;
   }
+
+  isCorrect(): Bool {
+    // If Agent ID is zero we don't need to check the other values, but this is still a valid message
+    if (this.agentId.equals(Field.empty())) {
+      return Bool(true);
+    }
+
+    // Agent ID (should be between 0 and 3000)
+    if (this.agentId.greaterThan(Field.empty())) {
+      if (this.agentId.lessThanOrEqual(Field(3000))) {
+        //Agent XLocation (should be between 0 and 15000) Agent YLocation
+        if (this.agentXLocation.greaterThanOrEqual(Field.empty())) {
+          if (this.agentXLocation.lessThanOrEqual(Field(15000))) {
+            // Agent YLocation (should be between 5000 and 20000) Agent YLocation should be greater than Agent XLocation
+            if (this.agentYLocation.greaterThan(this.agentXLocation)) {
+              if (this.agentYLocation.greaterThanOrEqual(Field(5000))) {
+                if (this.agentYLocation.lessThanOrEqual(Field(20000))) {
+                  // CheckSum is the sum of Agent ID , Agent XLocation,and Agent YLocation
+                  const sum = this.agentId.add(this.agentXLocation).add(this.agentYLocation);
+                  return (sum.equals(this.checksum));
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+    return Bool(false);
+  }
 }
 
 
@@ -126,13 +155,9 @@ export class MessageAnalyzer extends SmartContract {
 
     for (let index = 0; index < 200; index++) {
       const element = msg.messages[index];
+      // In case the message number is not greater than the previous one, this means that this is a duplicate message
       lastId = Provable.if(element.messageNumber.greaterThan(lastId),
-        (element.agentId.equals(0),
-          element.messageNumber,
-          Provable.if(
-            Gadgets.and(element.agentId.greaterThan(0).toField(), element.agentId.lessThanOrEqual(3000).toField(), 32)
-              .equals(1), element.messageNumber, lastId))
-        , lastId);
+        Provable.if(element.isCorrect(), element.messageNumber, lastId), lastId);
     }
     // store the bigest id never evaluated
     this.maxMessageNumber.set(lastId);
