@@ -9,19 +9,6 @@ function and3(val1: Bool, val2: Bool, val3: Bool): Bool {
   return and(and(val1, val2), val3);
 }
 
-function and4(val1: Bool, val2: Bool, val3: Bool, val4: Bool): Bool {
-  return and(and3(val1, val2, val3), val4);
-}
-
-
-function and5(val1: Bool, val2: Bool, val3: Bool, val4: Bool, val5: Bool): Bool {
-  return and(and4(val1, val2, val3, val4), val5);
-}
-
-function between(val: UInt32, minInclude: number, maxInclude: number): Bool {
-  return and(val.greaterThanOrEqual(new UInt32(minInclude)), val.lessThanOrEqual(new UInt32(maxInclude)));
-}
-
 export class Message extends Struct({
   messageNumber: Field,
   agentId: UInt32,
