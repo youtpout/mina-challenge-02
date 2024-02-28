@@ -120,20 +120,20 @@ export class Message200 extends Struct({
   constructor(value: {
     messages: Message[]
   }) {
-    // let newMsg = value;
-    // if (value.messages.length > 200) {
-    //   // throw Error("More than 200 messages");
-    // }
-    // else if (value.messages.length < 200) {
-    //   // we fill with empty message to get 200 messages
-    //   const nb = 200 - value.messages.length;
-    //   const emptyMessage = new Message({ messageNumber: Field.empty(), agentId: Field.empty(), agentXLocation: Field.empty(), agentYLocation: Field.empty(), checksum: Field.empty() });
-    //   for (let index = 0; index < nb; index++) {
-    //     value.messages.push(emptyMessage);
-    //   }
+    let newMsg = value;
+    if (value.messages.length > 200) {
+      throw Error("More than 200 messages");
+    }
+    else if (value.messages.length < 200) {
+      // we fill with empty message to get 200 messages
+      const nb = 200 - value.messages.length;
+      const emptyMessage = new Message({ messageNumber: Field.empty(), agentId: Field.empty(), agentXLocation: Field.empty(), agentYLocation: Field.empty(), checksum: Field.empty() });
+      for (let index = 0; index < nb; index++) {
+        value.messages.push(emptyMessage);
+      }
 
-    // }
-    super(value);
+    }
+    super(newMsg);
   }
 }
 
