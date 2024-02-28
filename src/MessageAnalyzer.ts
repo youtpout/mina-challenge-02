@@ -1,5 +1,4 @@
 import { Field, SmartContract, state, State, method, Struct, Poseidon, Bool, Provable } from 'o1js';
-import { empty } from 'o1js/dist/node/bindings/mina-transaction/gen/transaction';
 import { Gadgets } from 'o1js/dist/node/lib/gadgets/gadgets';
 
 
@@ -20,33 +19,43 @@ export class Message extends Struct({
     super(value);
   }
 
-  isCorrect(): Bool {
+  verifyAgentId(subExecution: Bool): Bool {
     // If Agent ID is zero we don't need to check the other values, but this is still a valid message
-    if (this.agentId.equals(0)) {
-      return Bool(true);
-    }
+    return Provable.if(this.agentId.equals(0),
+      Bool(true),
+      subExecution);
+  }
 
-    // Agent ID (should be between 0 and 3000)
-    if (this.agentId.greaterThan(0)) {
-      if (this.agentId.lessThanOrEqual(Field(3000))) {
-        //Agent XLocation (should be between 0 and 15000) Agent YLocation
-        if (this.agentXLocation.greaterThanOrEqual(0)) {
-          if (this.agentXLocation.lessThanOrEqual(Field(15000))) {
-            // Agent YLocation (should be between 5000 and 20000) Agent YLocation should be greater than Agent XLocation
-            if (this.agentYLocation.greaterThan(this.agentXLocation)) {
-              if (this.agentYLocation.greaterThanOrEqual(Field(5000))) {
-                if (this.agentYLocation.lessThanOrEqual(Field(20000))) {
-                  // CheckSum is the sum of Agent ID , Agent XLocation,and Agent YLocation
-                  const sum = this.agentId.add(this.agentXLocation).add(this.agentYLocation);
-                  return (sum.equals(this.checksum));
-                }
-              }
-            }
-          }
-        }
-      }
-    }
-    return Bool(false);
+  verifyAgentXLocation(subExecution: Bool): Bool {
+    return Provable.if(
+      // Agent ID (should be between 0 and 3000)
+      Gadgets.and(this.agentId.greaterThan(0).toField(), this.agentId.lessThanOrEqual(3000).toField(), 32)
+        .equals(1),
+      subExecution,
+      Bool(false));
+  }
+
+  verifyAgentYLocation(subExecution: Bool): Bool {
+    // Agent YLocation (should be between 5000 and 20000) Agent YLocation should be greater than Agent XLocation
+    return Provable.if(
+      // Agent ID (should be between 0 and 3000)
+      Gadgets.and(Gadgets.and(this.agentYLocation.greaterThan(this.agentXLocation).toField(), this.agentYLocation.greaterThanOrEqual(5000).toField(), 32), this.agentYLocation.lessThanOrEqual(Field(20000)).toField(), 32)
+        .equals(1),
+      subExecution,
+      Bool(false));
+  }
+
+  verifyChecksum(): Bool {
+    // CheckSum is the sum of Agent ID , Agent XLocation,and Agent YLocation
+    return Provable.if(
+      this.agentId.add(this.agentXLocation).add(this.agentYLocation).equals(this.checksum),
+      Bool(true),
+      Bool(false));
+  }
+
+  isCorrect(): Bool {
+    // chain verification
+    return this.verifyAgentId(this.verifyAgentXLocation(this.verifyAgentYLocation(this.verifyChecksum())));
   }
 }
 
@@ -107,9 +116,10 @@ export class MessageAnalyzer extends SmartContract {
 
     for (let index = 0; index < 200; index++) {
       const element = msg.messages[index];
+      const isCorrect = element.isCorrect();
       // In case the message number is not greater than the previous one, this means that this is a duplicate message
       lastId = Provable.if(element.messageNumber.greaterThan(lastId),
-        Provable.if(element.isCorrect(), element.messageNumber, lastId), lastId);
+        Provable.if(isCorrect, element.messageNumber, lastId), lastId);
     }
     // store the bigest id never evaluated
     this.maxMessageNumber.set(lastId);

@@ -62,12 +62,12 @@ describe('MessageAnalyzer', () => {
       messages.push(message);
     }
 
-    const msg100 = new Message200({ messages });
+    const msg200 = new Message200({ messages });
 
     // update transaction
     const txn = await Mina.transaction(senderAccount, () => {
       //zkApp.update();
-      zkApp.analyze(msg100);
+      zkApp.analyze(msg200);
     });
     await txn.prove();
     await txn.sign([senderKey]).send();
@@ -76,8 +76,38 @@ describe('MessageAnalyzer', () => {
     expect(updatedNum).toEqual(Field(99));
   });
 
-  function randomField(maxValue: number): Field {
-    const nb = Math.random() * maxValue;
-    return Field(Math.floor(nb));
-  }
+  it('correctly test messages unordered', async () => {
+    await localDeploy();
+
+    const messages: Message[] = [];
+
+    let message = new Message({ messageNumber: new Field(10), agentId: new Field(1500), agentXLocation: new Field(15000), agentYLocation: new Field(20000), checksum: new Field(36500) });
+    messages.push(message);
+
+    // biggest messageNumber
+    message = new Message({ messageNumber: new Field(32), agentId: new Field(0), agentXLocation: new Field(0), agentYLocation: new Field(20000), checksum: new Field(36500) });
+    messages.push(message);
+
+    // incorrect
+    message = new Message({ messageNumber: new Field(55), agentId: new Field(2), agentXLocation: new Field(0), agentYLocation: new Field(20000), checksum: new Field(36500) });
+    messages.push(message);
+
+    message = new Message({ messageNumber: new Field(12), agentId: new Field(0), agentXLocation: new Field(0), agentYLocation: new Field(20000), checksum: new Field(36500) });
+    messages.push(message);
+
+
+    const msg200 = new Message200({ messages });
+
+    // update transaction
+    const txn = await Mina.transaction(senderAccount, () => {
+      //zkApp.update();
+      zkApp.analyze(msg200);
+    });
+    await txn.prove();
+    await txn.sign([senderKey]).send();
+
+    const updatedNum = zkApp.maxMessageNumber.get();
+    expect(updatedNum).toEqual(Field(32));
+  });
+
 });
