@@ -51,7 +51,7 @@ describe('MessageAnalyzer', () => {
     expect(num).toEqual(Field(0));
   });
 
-  it('correctly test messages', async () => {
+  it('correctly test messages 100', async () => {
     await localDeploy();
 
     const messages: Message[] = [];
