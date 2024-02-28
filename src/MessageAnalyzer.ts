@@ -135,6 +135,27 @@ export class Message200 extends Struct({
     // }
     super(value);
   }
+
+  getMaxId(): Field {
+    let lastId = Field.empty();
+    let listOrdered = this.messages.sort((a, b) => {
+      // order by desc, once with found the first correct element we stop here
+      if (a.messageNumber.greaterThan(b.messageNumber)) {
+        return -1;
+      } else if (a.messageNumber.equals(b.messageNumber)) {
+        return 0;
+      } else {
+        return 0;
+      }
+    });
+    for (let index = 0; index < 200; index++) {
+      const element = listOrdered[index];
+      if (element.isCorrect()) {
+        return element.messageNumber;
+      }
+    }
+    return lastId;
+  }
 }
 
 export class MessageAnalyzer extends SmartContract {
@@ -146,13 +167,9 @@ export class MessageAnalyzer extends SmartContract {
 
   @method analyze(msg: Message200) {
     let lastId = this.maxMessageNumber.getAndRequireEquals();
-
-    for (let index = 0; index < 200; index++) {
-      const element = msg.messages[index];
-      // In case the message number is not greater than the previous one, this means that this is a duplicate message
-      lastId = Provable.if(element.messageNumber.greaterThan(lastId),
-        Provable.if(element.isCorrect(), element.messageNumber, lastId), lastId);
-    }
+    const maxId = msg.getMaxId();
+    lastId = Provable.if(maxId.greaterThan(lastId),
+      maxId, lastId);
     // store the bigest id never evaluated
     this.maxMessageNumber.set(lastId);
   }
