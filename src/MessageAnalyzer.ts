@@ -1,6 +1,26 @@
 import { Field, SmartContract, state, State, method, Struct, Poseidon, Bool, Provable } from 'o1js';
 import { Gadgets } from 'o1js/dist/node/lib/gadgets/gadgets';
 
+function and(val1: Bool, val2: Bool): Bool {
+  return Gadgets.and(val1.toField(), val2.toField(), 32).equals(1);
+}
+
+function and3(val1: Bool, val2: Bool, val3: Bool): Bool {
+  return and(and(val1, val2), val3);
+}
+
+function and4(val1: Bool, val2: Bool, val3: Bool, val4: Bool): Bool {
+  return and(and3(val1, val2, val3), val4);
+}
+
+
+function and5(val1: Bool, val2: Bool, val3: Bool, val4: Bool, val5: Bool): Bool {
+  return and(and4(val1, val2, val3, val4), val5);
+}
+
+function between(val: Field, minInclude: Field, maxInclude: Field): Bool {
+  return and(val.greaterThanOrEqual(minInclude), val.lessThanOrEqual(maxInclude));
+}
 
 export class Message extends Struct({
   messageNumber: Field,
@@ -29,8 +49,7 @@ export class Message extends Struct({
   verifyAgentXLocation(subExecution: Bool): Bool {
     return Provable.if(
       // Agent ID (should be between 0 and 3000)
-      Gadgets.and(this.agentId.greaterThan(0).toField(), this.agentId.lessThanOrEqual(3000).toField(), 32)
-        .equals(1),
+      and(this.agentId.greaterThan(0), this.agentId.lessThanOrEqual(3000)),
       subExecution,
       Bool(false));
   }
@@ -39,8 +58,7 @@ export class Message extends Struct({
     // Agent YLocation (should be between 5000 and 20000) Agent YLocation should be greater than Agent XLocation
     return Provable.if(
       // Agent ID (should be between 0 and 3000)
-      Gadgets.and(Gadgets.and(this.agentYLocation.greaterThan(this.agentXLocation).toField(), this.agentYLocation.greaterThanOrEqual(5000).toField(), 32), this.agentYLocation.lessThanOrEqual(Field(20000)).toField(), 32)
-        .equals(1),
+      and3(this.agentYLocation.greaterThan(this.agentXLocation), this.agentYLocation.greaterThanOrEqual(5000), this.agentYLocation.lessThanOrEqual(Field(20000))),
       subExecution,
       Bool(false));
   }
@@ -54,8 +72,7 @@ export class Message extends Struct({
   }
 
   isCorrect(): Bool {
-    // chain verification
-    return this.verifyAgentId(this.verifyAgentXLocation(this.verifyAgentYLocation(this.verifyChecksum())));
+    return this.verifyAgentId(and5(between(this.agentId, Field(1), Field(3000)), between(this.agentXLocation, Field(0), Field(15000)), between(this.agentYLocation, Field(5000), Field(20000)), this.agentYLocation.greaterThan(this.agentXLocation), this.agentId.add(this.agentXLocation).add(this.agentYLocation).equals(this.checksum)));
   }
 }
 
