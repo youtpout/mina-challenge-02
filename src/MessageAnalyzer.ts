@@ -1,4 +1,6 @@
 import { Field, SmartContract, state, State, method, Struct, Poseidon, Bool, Provable } from 'o1js';
+import { empty } from 'o1js/dist/node/bindings/mina-transaction/gen/transaction';
+import { Gadgets } from 'o1js/dist/node/lib/gadgets/gadgets';
 
 
 export class Message extends Struct({
@@ -42,15 +44,23 @@ export class Message extends Struct({
     }
 
     // Agent ID (should be between 0 and 3000)
-    if (this.agentId > zero && this.agentId <= Field(3000)) {
-      //Agent XLocation (should be between 0 and 15000) Agent YLocation
-      if (this.agentXLocation >= zero && this.agentXLocation <= Field(15000)) {
-        // Agent YLocation (should be between 5000 and 20000) Agent YLocation should be greater than Agent XLocation
-        if (this.agentYLocation > this.agentXLocation && this.agentYLocation >= Field(5000) && this.agentYLocation <= Field(20000)) {
-          // CheckSum is the sum of Agent ID , Agent XLocation,and Agent YLocation
-          const sum = this.agentId.add(this.agentXLocation).add(this.agentYLocation);
-          if (sum == this.checksum) {
-            return this.messageNumber;
+    if (this.agentId.greaterThan(zero)) {
+      if (this.agentId.lessThanOrEqual(Field(3000))) {
+        //Agent XLocation (should be between 0 and 15000) Agent YLocation
+        if (this.agentXLocation.greaterThanOrEqual(zero)) {
+          if (this.agentXLocation.lessThanOrEqual(Field(15000))) {
+            // Agent YLocation (should be between 5000 and 20000) Agent YLocation should be greater than Agent XLocation
+            if (this.agentYLocation.greaterThan(this.agentXLocation)) {
+              if (this.agentYLocation.greaterThanOrEqual(Field(5000))) {
+                if (this.agentYLocation.lessThanOrEqual(Field(20000))) {
+                  // CheckSum is the sum of Agent ID , Agent XLocation,and Agent YLocation
+                  const sum = this.agentId.add(this.agentXLocation).add(this.agentYLocation);
+                  if (sum.equals(this.checksum)) {
+                    return this.messageNumber;
+                  }
+                }
+              }
+            }
           }
         }
       }
@@ -116,13 +126,14 @@ export class MessageAnalyzer extends SmartContract {
 
     for (let index = 0; index < 200; index++) {
       const element = msg.messages[index];
-      console.log("index", index);
-      const newId = element.process(lastId);
-      newId.assertGreaterThanOrEqual(lastId);
-      lastId = newId;
-      console.log("new last Id", lastId);
+      lastId = Provable.if(element.messageNumber.greaterThan(lastId),
+        (element.agentId.equals(0),
+          element.messageNumber,
+          Provable.if(
+            Gadgets.and(element.agentId.greaterThan(0).toField(), element.agentId.lessThanOrEqual(3000).toField(), 32)
+              .equals(1), element.messageNumber, lastId))
+        , lastId);
     }
-    console.log("msg length", msg.messages.length);
     // store the bigest id never evaluated
     this.maxMessageNumber.set(lastId);
   }
