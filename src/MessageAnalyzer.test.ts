@@ -1,5 +1,5 @@
 import { MessageAnalyzer, Message, Message200 } from './MessageAnalyzer';
-import { Field, Mina, PrivateKey, PublicKey, AccountUpdate } from 'o1js';
+import { Field, Mina, PrivateKey, PublicKey, AccountUpdate, UInt32 } from 'o1js';
 
 /*
  * This file specifies how to test the `Add` example smart contract. It is safe to delete this file and replace
@@ -56,7 +56,7 @@ describe('MessageAnalyzer', () => {
 
     const messages: Message[] = [];
     for (let index = 0; index < 100; index++) {
-      let message = new Message({ messageNumber: new Field(index), agentId: new Field(1500), agentXLocation: new Field(15000), agentYLocation: new Field(20000), checksum: new Field(36500) });
+      let message = new Message({ messageNumber: new Field(index), agentId: new UInt32(1500), agentXLocation: new UInt32(15000), agentYLocation: new UInt32(20000), checksum: new UInt32(36500) });
       //message.checksum = message.agentId.add(message.agentXLocation).add(message.agentYLocation);
 
       messages.push(message);
@@ -81,18 +81,18 @@ describe('MessageAnalyzer', () => {
 
     const messages: Message[] = [];
 
-    let message = new Message({ messageNumber: new Field(10), agentId: new Field(1500), agentXLocation: new Field(15000), agentYLocation: new Field(20000), checksum: new Field(36500) });
+    let message = new Message({ messageNumber: new Field(10), agentId: new UInt32(1500), agentXLocation: new UInt32(15000), agentYLocation: new UInt32(20000), checksum: new UInt32(36500) });
     messages.push(message);
 
     // biggest messageNumber
-    message = new Message({ messageNumber: new Field(32), agentId: new Field(0), agentXLocation: new Field(0), agentYLocation: new Field(20000), checksum: new Field(36500) });
+    message = new Message({ messageNumber: new Field(32), agentId: new UInt32(0), agentXLocation: new UInt32(0), agentYLocation: new UInt32(20000), checksum: new UInt32(36500) });
     messages.push(message);
 
     // incorrect
-    message = new Message({ messageNumber: new Field(55), agentId: new Field(2), agentXLocation: new Field(0), agentYLocation: new Field(20000), checksum: new Field(36500) });
+    message = new Message({ messageNumber: new Field(55), agentId: new UInt32(2), agentXLocation: new UInt32(0), agentYLocation: new UInt32(20000), checksum: new UInt32(36500) });
     messages.push(message);
 
-    message = new Message({ messageNumber: new Field(12), agentId: new Field(0), agentXLocation: new Field(0), agentYLocation: new Field(20000), checksum: new Field(36500) });
+    message = new Message({ messageNumber: new Field(12), agentId: new UInt32(0), agentXLocation: new UInt32(0), agentYLocation: new UInt32(20000), checksum: new UInt32(36500) });
     messages.push(message);
 
 

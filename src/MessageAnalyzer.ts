@@ -1,4 +1,4 @@
-import { Field, SmartContract, state, State, method, Struct, Poseidon, Bool, Provable } from 'o1js';
+import { Field, SmartContract, state, State, method, Struct, Poseidon, Bool, Provable, UInt32, UInt64 } from 'o1js';
 import { Gadgets } from 'o1js/dist/node/lib/gadgets/gadgets';
 
 function and(val1: Bool, val2: Bool): Bool {
@@ -18,38 +18,39 @@ function and5(val1: Bool, val2: Bool, val3: Bool, val4: Bool, val5: Bool): Bool 
   return and(and4(val1, val2, val3, val4), val5);
 }
 
-function between(val: Field, minInclude: Field, maxInclude: Field): Bool {
-  return and(val.greaterThanOrEqual(minInclude), val.lessThanOrEqual(maxInclude));
+function between(val: UInt32, minInclude: number, maxInclude: number): Bool {
+  return and(val.greaterThanOrEqual(new UInt32(minInclude)), val.lessThanOrEqual(new UInt32(maxInclude)));
 }
 
 export class Message extends Struct({
   messageNumber: Field,
-  agentId: Field,
-  agentXLocation: Field,
-  agentYLocation: Field,
-  checksum: Field
+  agentId: UInt32,
+  agentXLocation: UInt32,
+  agentYLocation: UInt32,
+  checksum: UInt32
 }) {
   constructor(value: {
     messageNumber: Field,
-    agentId: Field,
-    agentXLocation: Field,
-    agentYLocation: Field,
-    checksum: Field
+    agentId: UInt32,
+    agentXLocation: UInt32,
+    agentYLocation: UInt32,
+    checksum: UInt32
   }) {
     super(value);
   }
 
   verifyAgentId(subExecution: Bool): Bool {
     // If Agent ID is zero we don't need to check the other values, but this is still a valid message
-    return Provable.if(this.agentId.equals(0),
+    return Provable.if(this.agentId.equals(UInt32.zero),
       Bool(true),
-      subExecution);
+      // Agent ID (should be between 0 and 3000)
+      Provable.if(this.agentId.lessThanOrEqual(new UInt32(3000)), subExecution, Bool(false)));
   }
 
   verifyAgentXLocation(subExecution: Bool): Bool {
     return Provable.if(
-      // Agent ID (should be between 0 and 3000)
-      and(this.agentId.greaterThan(0), this.agentId.lessThanOrEqual(3000)),
+      // Agent XLocation (should be between 0 and 15000) 
+      this.agentXLocation.lessThanOrEqual(new UInt32(15000)),
       subExecution,
       Bool(false));
   }
@@ -57,8 +58,7 @@ export class Message extends Struct({
   verifyAgentYLocation(subExecution: Bool): Bool {
     // Agent YLocation (should be between 5000 and 20000) Agent YLocation should be greater than Agent XLocation
     return Provable.if(
-      // Agent ID (should be between 0 and 3000)
-      and3(this.agentYLocation.greaterThan(this.agentXLocation), this.agentYLocation.greaterThanOrEqual(5000), this.agentYLocation.lessThanOrEqual(Field(20000))),
+      and3(this.agentYLocation.greaterThan(this.agentXLocation), this.agentYLocation.greaterThanOrEqual(new UInt32(5000)), this.agentYLocation.lessThanOrEqual(new UInt32(20000))),
       subExecution,
       Bool(false));
   }
@@ -72,7 +72,7 @@ export class Message extends Struct({
   }
 
   isCorrect(): Bool {
-    return this.verifyAgentId(and5(between(this.agentId, Field(1), Field(3000)), between(this.agentXLocation, Field(0), Field(15000)), between(this.agentYLocation, Field(5000), Field(20000)), this.agentYLocation.greaterThan(this.agentXLocation), this.agentId.add(this.agentXLocation).add(this.agentYLocation).equals(this.checksum)));
+    return this.verifyAgentId(this.verifyAgentXLocation(this.verifyAgentYLocation(this.verifyChecksum())));
   }
 }
 
@@ -111,7 +111,7 @@ export class Message200 extends Struct({
     else if (value.messages.length < 200) {
       // we fill with empty message to get 200 messages
       const nb = 200 - value.messages.length;
-      const emptyMessage = new Message({ messageNumber: Field.empty(), agentId: Field.empty(), agentXLocation: Field.empty(), agentYLocation: Field.empty(), checksum: Field.empty() });
+      const emptyMessage = new Message({ messageNumber: Field.empty(), agentId: UInt32.zero, agentXLocation: UInt32.zero, agentYLocation: UInt32.zero, checksum: UInt32.zero });
       for (let index = 0; index < nb; index++) {
         value.messages.push(emptyMessage);
       }
