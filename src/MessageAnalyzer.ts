@@ -30,24 +30,18 @@ export class Message extends Struct({
     ]);
   }
 
-  process(lastId: Field): Field {
-    const zero = Field.empty();
-    console.log("lastId", lastId);
-    // In case the message number is not greater than the previous one, this means that this is a duplicate message
-    if (this.messageNumber.lessThanOrEqual(lastId)) {
-      console.log("isCorrect", false);
-      return lastId;
-    }
+  process(): Field {
+
     // If Agent ID is zero we don't need to check the other values, but this is still a valid message
-    if (this.agentId == zero) {
+    if (this.agentId.equals(0)) {
       return this.messageNumber;
     }
 
     // Agent ID (should be between 0 and 3000)
-    if (this.agentId.greaterThan(zero)) {
+    if (this.agentId.greaterThan(0)) {
       if (this.agentId.lessThanOrEqual(Field(3000))) {
         //Agent XLocation (should be between 0 and 15000) Agent YLocation
-        if (this.agentXLocation.greaterThanOrEqual(zero)) {
+        if (this.agentXLocation.greaterThanOrEqual(0)) {
           if (this.agentXLocation.lessThanOrEqual(Field(15000))) {
             // Agent YLocation (should be between 5000 and 20000) Agent YLocation should be greater than Agent XLocation
             if (this.agentYLocation.greaterThan(this.agentXLocation)) {
@@ -65,20 +59,20 @@ export class Message extends Struct({
         }
       }
     }
-    return lastId;
+    return Field.empty();
   }
 
   isCorrect(): Bool {
     // If Agent ID is zero we don't need to check the other values, but this is still a valid message
-    if (this.agentId.equals(Field.empty())) {
+    if (this.agentId.equals(0)) {
       return Bool(true);
     }
 
     // Agent ID (should be between 0 and 3000)
-    if (this.agentId.greaterThan(Field.empty())) {
+    if (this.agentId.greaterThan(0)) {
       if (this.agentId.lessThanOrEqual(Field(3000))) {
         //Agent XLocation (should be between 0 and 15000) Agent YLocation
-        if (this.agentXLocation.greaterThanOrEqual(Field.empty())) {
+        if (this.agentXLocation.greaterThanOrEqual(0)) {
           if (this.agentXLocation.lessThanOrEqual(Field(15000))) {
             // Agent YLocation (should be between 5000 and 20000) Agent YLocation should be greater than Agent XLocation
             if (this.agentYLocation.greaterThan(this.agentXLocation)) {
@@ -165,33 +159,3 @@ export class MessageAnalyzer extends SmartContract {
 }
 
 
-
-function process(message: Message, lastId: Field): Field {
-  const zero = Field.empty();
-  console.log("lastId", lastId);
-  // In case the message number is not greater than the previous one, this means that this is a duplicate message
-  if (message.messageNumber.lessThanOrEqual(lastId)) {
-    console.log("isCorrect", false);
-    return lastId;
-  }
-  // If Agent ID is zero we don't need to check the other values, but this is still a valid message
-  if (message.agentId == zero) {
-    return message.messageNumber;
-  }
-
-  // Agent ID (should be between 0 and 3000)
-  if (message.agentId > zero && message.agentId <= Field(3000)) {
-    //Agent XLocation (should be between 0 and 15000) Agent YLocation
-    if (message.agentXLocation >= zero && message.agentXLocation <= Field(15000)) {
-      // Agent YLocation (should be between 5000 and 20000) Agent YLocation should be greater than Agent XLocation
-      if (message.agentYLocation > message.agentXLocation && message.agentYLocation >= Field(5000) && message.agentYLocation <= Field(20000)) {
-        // CheckSum is the sum of Agent ID , Agent XLocation,and Agent YLocation
-        const sum = message.agentId.add(message.agentXLocation).add(message.agentYLocation);
-        if (sum == message.checksum) {
-          return message.messageNumber;
-        }
-      }
-    }
-  }
-  return lastId;
-}
