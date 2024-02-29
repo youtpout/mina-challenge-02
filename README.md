@@ -6,7 +6,8 @@ I use Uint32 value to optimize space and verification, with Uint32 we don't need
 
 I use Provable if and gadget and to check if value is correct
 
-On Ryzen 7950 X I need between 6 and 8s to execute the analyze.
+On Ryzen 7950X I need between 6 and 8s by test.
+On mba early 2014 i5 dual core, 37s for the first test 17-18s for others tests.
 
 ## How to build
 
